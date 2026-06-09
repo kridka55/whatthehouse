@@ -1,0 +1,46 @@
+{
+  "note_th": "💬 ราคาขึ้นอยู่กับขนาดบ้าน/คอนโด ประเภททรัพย์ และพื้นที่ — สอบถามราคาและขอใบเสนอราคาได้ทันที ไม่มีค่าใช้จ่าย",
+  "note_en": "💬 Pricing depends on the size, property type and location — request a free, no-obligation quote anytime.",
+  "plans": [
+    {
+      "title_th": "ตรวจคอนโด", "title_en": "Condo Inspection",
+      "featured": false, "tag_th": "", "tag_en": "",
+      "from_th": "เริ่มต้น", "from_en": "from",
+      "price_th": "฿X,XXX", "price_en": "฿X,XXX",
+      "unit_th": "/ ยูนิต", "unit_en": "/ unit",
+      "features": [
+        { "th": "ตรวจทุกระบบภายในห้อง", "en": "All in-unit systems" },
+        { "th": "ตรวจรั่วซึม ไฟฟ้า ประปา", "en": "Leak, electrical & plumbing" },
+        { "th": "รายงาน PDF ไทย/อังกฤษ", "en": "Thai/English PDF report" },
+        { "th": "ตรวจรอบแก้ไข 1 ครั้ง", "en": "1 re-inspection round" }
+      ]
+    },
+    {
+      "title_th": "ตรวจบ้าน", "title_en": "House Inspection",
+      "featured": true, "tag_th": "นิยมที่สุด", "tag_en": "Most popular",
+      "from_th": "เริ่มต้น", "from_en": "from",
+      "price_th": "฿X,XXX", "price_en": "฿X,XXX",
+      "unit_th": "/ หลัง", "unit_en": "/ home",
+      "features": [
+        { "th": "ตรวจครบทั้งโครงสร้าง–งานระบบ", "en": "Full structure + systems" },
+        { "th": "จำลองฝน ตรวจหลังคา รั่วซึม", "en": "Rain test, roof & leak checks" },
+        { "th": "ใช้อุปกรณ์ตรวจเฉพาะทาง", "en": "Specialized equipment" },
+        { "th": "รายงาน PDF ไทย/อังกฤษ", "en": "Thai/English PDF report" },
+        { "th": "ตรวจ 2 รอบ ก่อน–หลังแก้ไข", "en": "2 rounds: before & after fixes" }
+      ]
+    },
+    {
+      "title_th": "ควบคุม / ที่ปรึกษา", "title_en": "Supervision / Consulting",
+      "featured": false, "tag_th": "", "tag_en": "",
+      "from_th": "ประเมินตามงาน", "from_en": "quoted per project",
+      "price_th": "ตามขอบเขต", "price_en": "Custom",
+      "unit_th": "", "unit_en": "",
+      "features": [
+        { "th": "ควบคุมงานก่อสร้าง / ต่อเติม", "en": "Construction & extension supervision" },
+        { "th": "ที่ปรึกษาก่อนสร้าง / รีวิว BOQ", "en": "Pre-build consulting & BOQ review" },
+        { "th": "ตรวจปัญหาบ้าน / ตรวจรับงาน", "en": "Defect diagnosis & QC" },
+        { "th": "รายงานพร้อมรูปภาพตามงวด", "en": "Phased reports with photos" }
+      ]
+    }
+  ]
+}
