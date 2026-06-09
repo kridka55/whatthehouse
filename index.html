@@ -313,5 +313,18 @@
 
 <script src="assets/js/main.js"></script>
 <script src="assets/js/cms.js"></script>
+<!-- Netlify Identity widget: รับลิงก์เชิญแอดมิน แล้วพาไปตั้งรหัส/เข้าหน้า /admin -->
+<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+<script>
+  if (window.netlifyIdentity) {
+    window.netlifyIdentity.on("init", function (user) {
+      if (!user) {
+        window.netlifyIdentity.on("login", function () {
+          document.location.href = "/admin/";
+        });
+      }
+    });
+  }
+</script>
 </body>
 </html>
