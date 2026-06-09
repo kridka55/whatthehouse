@@ -1,0 +1,9 @@
+# Netlify config — เว็บ static ไม่ต้อง build, เสิร์ฟไฟล์จาก root
+[build]
+  publish = "."
+
+# ให้หน้า /admin เข้าถึงได้ตรง ๆ
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
