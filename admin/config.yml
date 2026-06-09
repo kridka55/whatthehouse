@@ -18,6 +18,8 @@ collections:
     label: "ผลงาน (Portfolio)"
     label_singular: "ผลงาน"
     delete: false
+    editor:
+      preview: false
     files:
       - name: "portfolio"
         label: "รายการผลงาน"
@@ -42,6 +44,8 @@ collections:
   - name: "blog"
     label: "บทความ (Blog)"
     delete: false
+    editor:
+      preview: false
     files:
       - name: "blog"
         label: "รายการบทความ"
@@ -68,6 +72,8 @@ collections:
   - name: "pricing"
     label: "ค่าบริการ (Pricing)"
     delete: false
+    editor:
+      preview: false
     files:
       - name: "pricing"
         label: "แพ็กเกจราคา"
@@ -104,6 +110,8 @@ collections:
   - name: "contact"
     label: "ข้อมูลติดต่อ (Contact)"
     delete: false
+    editor:
+      preview: false
     files:
       - name: "contact"
         label: "ช่องทางติดต่อ"
