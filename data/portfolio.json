@@ -1,16 +1,112 @@
 {
   "items": [
-    { "image": "", "tag_th": "ตรวจบ้านก่อนโอน", "tag_en": "Pre-transfer", "title_th": "บ้านเดี่ยว 2 ชั้น", "title_en": "2-storey detached house", "sub_th": "เชียงใหม่ • ตรวจก่อนโอน", "sub_en": "Chiang Mai • Pre-transfer" },
-    { "image": "", "tag_th": "ตรวจคอนโด", "tag_en": "Condo", "title_th": "คอนโด 1 ห้องนอน", "title_en": "1-bedroom condo", "sub_th": "เชียงใหม่ • ก่อนรับมอบ", "sub_en": "Chiang Mai • Handover" },
-    { "image": "", "tag_th": "ทาวน์โฮม", "tag_en": "Townhome", "title_th": "ทาวน์โฮม 3 ชั้น", "title_en": "3-storey townhome", "sub_th": "เชียงใหม่ • ตรวจรับมอบ", "sub_en": "Chiang Mai • Handover" },
-    { "image": "", "tag_th": "ตรวจรั่วซึม", "tag_en": "Leak test", "title_th": "จำลองฝน ตรวจหลังคา", "title_en": "Rain test & roof", "sub_th": "เชียงใหม่ • ตรวจปัญหา", "sub_en": "Chiang Mai • Diagnosis" },
-    { "image": "", "tag_th": "งานระบบ", "tag_en": "Systems", "title_th": "ตรวจระบบไฟฟ้า-ประปา", "title_en": "Electrical & plumbing", "sub_th": "ลำพูน • ตรวจรับมอบ", "sub_en": "Lamphun • Handover" },
-    { "image": "", "tag_th": "บ้านมือสอง", "tag_en": "Resale", "title_th": "บ้านมือสองก่อนซื้อ", "title_en": "Pre-purchase resale", "sub_th": "เชียงใหม่ • ตรวจก่อนซื้อ", "sub_en": "Chiang Mai • Pre-purchase" },
-    { "image": "", "tag_th": "ควบคุมงาน", "tag_en": "Supervision", "title_th": "ควบคุมงานก่อสร้าง", "title_en": "Construction supervision", "sub_th": "เชียงใหม่ • ตามงวด", "sub_en": "Chiang Mai • Phased" },
-    { "image": "", "tag_th": "ต่อเติม", "tag_en": "Extension", "title_th": "ตรวจงานต่อเติมครัว", "title_en": "Kitchen extension QC", "sub_th": "เชียงใหม่ • หลังต่อเติม", "sub_en": "Chiang Mai • Post-work" },
-    { "image": "", "tag_th": "รายงาน PDF", "tag_en": "PDF report", "title_th": "ตัวอย่างรายงานไทย/อังกฤษ", "title_en": "Sample TH/EN report", "sub_th": "พร้อมรูปภาพทุกจุด", "sub_en": "With photos for each item" },
-    { "image": "", "tag_th": "คอนโด", "tag_en": "Condo", "title_th": "คอนโด 2 ห้องนอน", "title_en": "2-bedroom condo", "sub_th": "เชียงราย • ก่อนรับมอบ", "sub_en": "Chiang Rai • Handover" },
-    { "image": "", "tag_th": "ตรวจรอบแก้ไข", "tag_en": "Re-inspect", "title_th": "ตรวจรอบสองหลังแก้ไข", "title_en": "Second-round re-inspection", "sub_th": "เชียงใหม่ • ก่อนเซ็นรับ", "sub_en": "Chiang Mai • Before sign-off" },
-    { "image": "", "tag_th": "บ้านแฝด", "tag_en": "Semi-detached", "title_th": "บ้านแฝด 2 ชั้น", "title_en": "2-storey semi-detached", "sub_th": "ลำปาง • ตรวจรับมอบ", "sub_en": "Lampang • Handover" }
+    {
+      "image": "/assets/uploads/whisk_6bd50405be66aacac9d491acf95e5c58dr.png",
+      "tag_th": "ตรวจบ้านก่อนโอน",
+      "tag_en": "Pre-transfer",
+      "title_th": "บ้านเดี่ยว 2 ชั้น",
+      "title_en": "2-storey detached house",
+      "sub_th": "เชียงใหม่ • ตรวจก่อนโอน",
+      "sub_en": "Chiang Mai • Pre-transfer"
+    },
+    {
+      "image": "",
+      "tag_th": "ตรวจคอนโด",
+      "tag_en": "Condo",
+      "title_th": "คอนโด 1 ห้องนอน",
+      "title_en": "1-bedroom condo",
+      "sub_th": "เชียงใหม่ • ก่อนรับมอบ",
+      "sub_en": "Chiang Mai • Handover"
+    },
+    {
+      "image": "",
+      "tag_th": "ทาวน์โฮม",
+      "tag_en": "Townhome",
+      "title_th": "ทาวน์โฮม 3 ชั้น",
+      "title_en": "3-storey townhome",
+      "sub_th": "เชียงใหม่ • ตรวจรับมอบ",
+      "sub_en": "Chiang Mai • Handover"
+    },
+    {
+      "image": "",
+      "tag_th": "ตรวจรั่วซึม",
+      "tag_en": "Leak test",
+      "title_th": "จำลองฝน ตรวจหลังคา",
+      "title_en": "Rain test & roof",
+      "sub_th": "เชียงใหม่ • ตรวจปัญหา",
+      "sub_en": "Chiang Mai • Diagnosis"
+    },
+    {
+      "image": "",
+      "tag_th": "งานระบบ",
+      "tag_en": "Systems",
+      "title_th": "ตรวจระบบไฟฟ้า-ประปา",
+      "title_en": "Electrical & plumbing",
+      "sub_th": "ลำพูน • ตรวจรับมอบ",
+      "sub_en": "Lamphun • Handover"
+    },
+    {
+      "image": "",
+      "tag_th": "บ้านมือสอง",
+      "tag_en": "Resale",
+      "title_th": "บ้านมือสองก่อนซื้อ",
+      "title_en": "Pre-purchase resale",
+      "sub_th": "เชียงใหม่ • ตรวจก่อนซื้อ",
+      "sub_en": "Chiang Mai • Pre-purchase"
+    },
+    {
+      "image": "",
+      "tag_th": "ควบคุมงาน",
+      "tag_en": "Supervision",
+      "title_th": "ควบคุมงานก่อสร้าง",
+      "title_en": "Construction supervision",
+      "sub_th": "เชียงใหม่ • ตามงวด",
+      "sub_en": "Chiang Mai • Phased"
+    },
+    {
+      "image": "",
+      "tag_th": "ต่อเติม",
+      "tag_en": "Extension",
+      "title_th": "ตรวจงานต่อเติมครัว",
+      "title_en": "Kitchen extension QC",
+      "sub_th": "เชียงใหม่ • หลังต่อเติม",
+      "sub_en": "Chiang Mai • Post-work"
+    },
+    {
+      "image": "",
+      "tag_th": "รายงาน PDF",
+      "tag_en": "PDF report",
+      "title_th": "ตัวอย่างรายงานไทย/อังกฤษ",
+      "title_en": "Sample TH/EN report",
+      "sub_th": "พร้อมรูปภาพทุกจุด",
+      "sub_en": "With photos for each item"
+    },
+    {
+      "image": "",
+      "tag_th": "คอนโด",
+      "tag_en": "Condo",
+      "title_th": "คอนโด 2 ห้องนอน",
+      "title_en": "2-bedroom condo",
+      "sub_th": "เชียงราย • ก่อนรับมอบ",
+      "sub_en": "Chiang Rai • Handover"
+    },
+    {
+      "image": "",
+      "tag_th": "ตรวจรอบแก้ไข",
+      "tag_en": "Re-inspect",
+      "title_th": "ตรวจรอบสองหลังแก้ไข",
+      "title_en": "Second-round re-inspection",
+      "sub_th": "เชียงใหม่ • ก่อนเซ็นรับ",
+      "sub_en": "Chiang Mai • Before sign-off"
+    },
+    {
+      "image": "",
+      "tag_th": "บ้านแฝด",
+      "tag_en": "Semi-detached",
+      "title_th": "บ้านแฝด 2 ชั้น",
+      "title_en": "2-storey semi-detached",
+      "sub_th": "ลำปาง • ตรวจรับมอบ",
+      "sub_en": "Lampang • Handover"
+    }
   ]
 }
