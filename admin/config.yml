@@ -1,0 +1,121 @@
+backend:
+  name: git-gateway
+  branch: main
+
+# ที่เก็บรูปที่ admin อัปโหลด
+media_folder: "assets/uploads"
+public_folder: "/assets/uploads"
+
+# ภาษาของหน้าจอหลังบ้าน
+locale: "en"
+
+# เปิดบรรทัดล่างนี้ตอนทดสอบในเครื่อง (ใช้กับ npx decap-server)
+# local_backend: true
+
+collections:
+  # ========== ผลงาน / PORTFOLIO ==========
+  - name: "portfolio"
+    label: "ผลงาน (Portfolio)"
+    label_singular: "ผลงาน"
+    delete: false
+    files:
+      - name: "portfolio"
+        label: "รายการผลงาน"
+        file: "data/portfolio.json"
+        description: "เพิ่ม/ลบ/แก้ไขผลงาน ลากเรียงลำดับได้ อัปโหลดรูปได้เลย"
+        fields:
+          - name: "items"
+            label: "ผลงานทั้งหมด"
+            label_singular: "ผลงาน 1 ชิ้น"
+            widget: "list"
+            summary: "{{fields.title_th}}"
+            fields:
+              - { name: "image", label: "รูปภาพผลงาน", widget: "image", required: false, hint: "ไม่ใส่ก็ได้ จะขึ้นเป็นภาพ placeholder" }
+              - { name: "tag_th", label: "ป้ายกำกับ (ไทย)", widget: "string", required: false }
+              - { name: "tag_en", label: "Tag (English)", widget: "string", required: false }
+              - { name: "title_th", label: "ชื่อผลงาน (ไทย)", widget: "string" }
+              - { name: "title_en", label: "Title (English)", widget: "string" }
+              - { name: "sub_th", label: "รายละเอียดสั้น (ไทย)", widget: "string", required: false }
+              - { name: "sub_en", label: "Subtitle (English)", widget: "string", required: false }
+
+  # ========== บทความ / BLOG ==========
+  - name: "blog"
+    label: "บทความ (Blog)"
+    delete: false
+    files:
+      - name: "blog"
+        label: "รายการบทความ"
+        file: "data/blog.json"
+        description: "เพิ่ม/แก้ไขบทความที่แสดงในหน้า Blog"
+        fields:
+          - name: "posts"
+            label: "บทความทั้งหมด"
+            label_singular: "บทความ 1 เรื่อง"
+            widget: "list"
+            summary: "{{fields.title_th}}"
+            fields:
+              - { name: "image", label: "รูปหน้าปก", widget: "image", required: false }
+              - { name: "cat_th", label: "หมวดหมู่ (ไทย)", widget: "string", required: false }
+              - { name: "cat_en", label: "Category (English)", widget: "string", required: false }
+              - { name: "title_th", label: "หัวข้อ (ไทย)", widget: "string" }
+              - { name: "title_en", label: "Title (English)", widget: "string" }
+              - { name: "excerpt_th", label: "คำโปรย (ไทย)", widget: "text", required: false }
+              - { name: "excerpt_en", label: "Excerpt (English)", widget: "text", required: false }
+              - { name: "read_th", label: "เวลาอ่าน (ไทย)", widget: "string", required: false, default: "อ่าน 5 นาที" }
+              - { name: "read_en", label: "Read time (English)", widget: "string", required: false, default: "5 min read" }
+
+  # ========== ราคา / PRICING ==========
+  - name: "pricing"
+    label: "ค่าบริการ (Pricing)"
+    delete: false
+    files:
+      - name: "pricing"
+        label: "แพ็กเกจราคา"
+        file: "data/pricing.json"
+        description: "แก้ราคาและรายละเอียดแต่ละแพ็กเกจ"
+        fields:
+          - { name: "note_th", label: "หมายเหตุราคา (ไทย)", widget: "text", required: false }
+          - { name: "note_en", label: "Price note (English)", widget: "text", required: false }
+          - name: "plans"
+            label: "แพ็กเกจ"
+            label_singular: "แพ็กเกจ 1 อัน"
+            widget: "list"
+            summary: "{{fields.title_th}} — {{fields.price_th}}"
+            fields:
+              - { name: "title_th", label: "ชื่อแพ็กเกจ (ไทย)", widget: "string" }
+              - { name: "title_en", label: "Title (English)", widget: "string" }
+              - { name: "featured", label: "แพ็กเกจแนะนำ (เน้นกรอบเขียว)", widget: "boolean", default: false }
+              - { name: "tag_th", label: "ป้ายมุมบน (ไทย) เช่น นิยมที่สุด", widget: "string", required: false }
+              - { name: "tag_en", label: "Badge (English)", widget: "string", required: false }
+              - { name: "from_th", label: "ข้อความเหนือราคา (ไทย) เช่น เริ่มต้น", widget: "string", required: false, default: "เริ่มต้น" }
+              - { name: "from_en", label: "Label above price (English)", widget: "string", required: false, default: "from" }
+              - { name: "price_th", label: "ราคา (ไทย) เช่น ฿3,500 หรือ ตามขอบเขต", widget: "string" }
+              - { name: "price_en", label: "Price (English)", widget: "string" }
+              - { name: "unit_th", label: "หน่วย (ไทย) เช่น / หลัง", widget: "string", required: false }
+              - { name: "unit_en", label: "Unit (English) e.g. / home", widget: "string", required: false }
+              - name: "features"
+                label: "รายการที่รวมในแพ็กเกจ"
+                widget: "list"
+                fields:
+                  - { name: "th", label: "ข้อความ (ไทย)", widget: "string" }
+                  - { name: "en", label: "Text (English)", widget: "string" }
+
+  # ========== ข้อมูลติดต่อ / CONTACT ==========
+  - name: "contact"
+    label: "ข้อมูลติดต่อ (Contact)"
+    delete: false
+    files:
+      - name: "contact"
+        label: "ช่องทางติดต่อ"
+        file: "data/contact.json"
+        description: "แก้เบอร์โทร LINE Facebook อีเมล WeChat และแผนที่ — อัปเดตทั้งเว็บอัตโนมัติ"
+        fields:
+          - { name: "phone_display", label: "เบอร์โทร (ที่แสดงบนเว็บ) เช่น 081-234-5678", widget: "string" }
+          - { name: "phone_e164", label: "เบอร์โทรสำหรับปุ่มกดโทร เช่น +66812345678", widget: "string", hint: "ขึ้นต้น +66 แล้วตัด 0 ตัวแรก" }
+          - { name: "line_id", label: "LINE ID เช่น @whatthehouse", widget: "string", required: false }
+          - { name: "line_url", label: "ลิงก์ LINE (https://lin.ee/...)", widget: "string", required: false }
+          - { name: "facebook_name", label: "ชื่อเพจ Facebook", widget: "string", required: false }
+          - { name: "facebook_url", label: "ลิงก์ Facebook", widget: "string", required: false }
+          - { name: "email", label: "อีเมล", widget: "string", required: false }
+          - { name: "wechat_id", label: "WeChat ID", widget: "string", required: false }
+          - { name: "map_embed", label: "โค้ดฝัง Google Map (วาง <iframe> ทั้งก้อน)", widget: "text", required: false }
