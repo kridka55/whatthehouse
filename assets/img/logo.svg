@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="What The House logo">
+  <defs></defs>
+  <!-- shield -->
+  <path d="M50 6 L86 18 V46 C86 70 70 86 50 94 C30 86 14 70 14 46 V18 Z"
+        fill="none" stroke="#16314f" stroke-width="5" stroke-linejoin="round"/>
+  <!-- house -->
+  <path d="M34 54 V40 L50 27 L66 40 V54"
+        fill="none" stroke="#16314f" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- window -->
+  <rect x="44" y="42" width="12" height="12" rx="1.5" fill="#16314f"/>
+  <line x1="50" y1="42" x2="50" y2="54" stroke="#fff" stroke-width="1.6"/>
+  <line x1="44" y1="48" x2="56" y2="48" stroke="#fff" stroke-width="1.6"/>
+  <!-- green check -->
+  <path d="M40 58 L50 68 L74 40"
+        fill="none" stroke="#2e9e4f" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
