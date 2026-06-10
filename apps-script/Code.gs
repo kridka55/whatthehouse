@@ -21,6 +21,12 @@ var CONFIG = {
   // กุญแจลับสำหรับเปิดหน้า Dashboard (เปลี่ยนเป็นรหัสของคุณเอง, ห้ามบอกใคร)
   DASHBOARD_KEY: 'wth-cnx-2026',
 
+  // ===== กันสแปม =====
+  // Secret key ของ Google reCAPTCHA v3 (เอามาจากหน้าสมัคร) — ปล่อยว่างไว้แบบนี้ = ยังไม่เปิดใช้
+  RECAPTCHA_SECRET: 'PASTE_RECAPTCHA_SECRET_KEY_HERE',
+  RECAPTCHA_MIN_SCORE: 0.5,   // คะแนนต่ำกว่านี้ถือว่าเป็นบอท (0.0=บอทแน่ ถึง 1.0=คนแน่)
+  MIN_FILL_SECONDS: 3,        // ถ้ากรอกเสร็จเร็วกว่านี้ (วินาที) ถือว่าเป็นบอท
+
   BUSINESS_NAME: 'WHAT THE HOUSE – Home Inspections',
   TIMEZONE: 'Asia/Bangkok',
 
@@ -45,12 +51,34 @@ function doPost(e) {
       data = (e && e.parameter) || {};
     }
 
-    // กันบอท: ถ้าช่อง honeypot (company) มีค่า ให้ทิ้งเงียบ ๆ
+    // ----- กันสแปม / บอท -----
+    // 1) honeypot: ถ้าช่องซ่อน (company) มีค่า = บอท ทิ้งเงียบ ๆ
     if (data.company) return jsonOut_({ ok: true });
+
+    // 2) กับดักเวลา: กรอกเสร็จเร็วผิดมนุษย์ = บอท
+    var elapsed = Number(data.elapsed || 0); // มิลลิวินาทีจากตอนเปิดหน้า
+    if (elapsed > 0 && elapsed < CONFIG.MIN_FILL_SECONDS * 1000) return jsonOut_({ ok: true });
+
+    // 3) reCAPTCHA v3 (ตรวจเฉพาะเมื่อตั้งค่า secret แล้ว)
+    if (!verifyRecaptcha_(data.recaptchaToken)) {
+      return jsonOut_({ ok: false, error: 'reCAPTCHA ไม่ผ่าน' });
+    }
+
+    // 4) ตรวจข้อมูลขั้นต่ำ: ต้องมีชื่อ และเบอร์โทรอย่างน้อย 8 หลัก
+    var nameRaw = String(data.name || '').trim();
+    var phoneDigits = String(data.phone || '').replace(/\D/g, '');
+    if (!nameRaw || phoneDigits.length < 8) return jsonOut_({ ok: false, error: 'ข้อมูลไม่ครบ' });
+
+    // 5) กันส่งซ้ำรัว ๆ: ชื่อ+เบอร์+ข้อความเดิมภายใน 5 นาที = ข้าม
+    var cache = CacheService.getScriptCache();
+    var sig = 'dup_' + Utilities.base64EncodeWebSafe(
+      Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, nameRaw + '|' + phoneDigits + '|' + String(data.message || '')));
+    if (cache.get(sig)) return jsonOut_({ ok: true, dup: true });
+    cache.put(sig, '1', 300);
 
     var sheet = getSheet_();
 
-    var name = String(data.name || 'ลูกค้า').trim();
+    var name = nameRaw || 'ลูกค้า';
     var project = String(data.project || '').trim();
     var jobId = 'WTH' + Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyMMdd-HHmmss');
 
@@ -181,6 +209,23 @@ function sanitize_(s) {
 
 function nowStr_() {
   return Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy-MM-dd HH:mm');
+}
+
+function verifyRecaptcha_(token) {
+  // ยังไม่ตั้งค่า secret -> ข้ามการตรวจ (ระบบยังทำงานได้ปกติ)
+  if (!CONFIG.RECAPTCHA_SECRET || CONFIG.RECAPTCHA_SECRET.indexOf('PASTE_') === 0) return true;
+  if (!token) return false;
+  try {
+    var resp = UrlFetchApp.fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'post',
+      payload: { secret: CONFIG.RECAPTCHA_SECRET, response: token },
+      muteHttpExceptions: true
+    });
+    var r = JSON.parse(resp.getContentText());
+    return r.success === true && (typeof r.score === 'undefined' || r.score >= CONFIG.RECAPTCHA_MIN_SCORE);
+  } catch (err) {
+    return false;
+  }
 }
 
 function jsonOut_(obj) {

@@ -17,6 +17,18 @@
   .btn-green:hover{ background:var(--green-dark); }
   .alert{ background:#fff8e1; border:1px solid #ffe08a; color:#7a5b00; border-radius:11px; padding:12px 16px; margin-bottom:16px; font-weight:600; display:flex; align-items:center; gap:8px; }
   .alert.hide{ display:none; }
+  /* การ์ดสรุป */
+  .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:16px; }
+  .stat{ background:#fff; border:1px solid var(--line); border-top:3px solid var(--line); border-radius:13px; padding:14px 16px; cursor:pointer; transition:.15s; }
+  .stat:hover{ box-shadow:0 2px 8px rgba(0,0,0,.07); transform:translateY(-1px); }
+  .stat.active{ box-shadow:0 0 0 2px var(--green-soft); }
+  .stat .n{ font-size:1.8rem; font-weight:700; line-height:1; }
+  .stat .t{ font-size:.8rem; color:var(--muted); margin-top:6px; }
+  .stat.all{ border-top-color:#16314f; } .stat.all.active{ border-color:#16314f; }
+  .stat.new{ border-top-color:#ffca28; } .stat.new.active{ border-color:#ffca28; }
+  .stat.prog{ border-top-color:#3a86ff; } .stat.prog.active{ border-color:#3a86ff; }
+  .stat.done{ border-top-color:var(--green); } .stat.done.active{ border-color:var(--green); }
+  @media(max-width:640px){ .stats{ grid-template-columns:repeat(2,1fr); } }
   .filters{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
   .filters input{ flex:1; min-width:160px; padding:8px 12px; border:1px solid var(--line); border-radius:9px; font-family:inherit; }
   .count{ color:var(--muted); font-size:.85rem; }
@@ -58,6 +70,8 @@
 <div class="wrap">
   <div class="alert hide" id="newAlert"></div>
 
+  <div class="stats" id="stats"></div>
+
   <div class="filters">
     <input id="search" placeholder="🔍 ค้นหาชื่อลูกค้า / โครงการ / เบอร์โทร" oninput="render()">
     <span class="count" id="count"></span>
@@ -71,6 +85,16 @@
 <script>
   var STAGES = [];
   var JOBS = [];
+  var FILTER = 'all'; // all | new | prog | done
+
+  function setFilter(f){
+    FILTER = (FILTER === f && f !== 'all') ? 'all' : f; // กดซ้ำ = ยกเลิกตัวกรอง
+    render();
+  }
+  function statCard(key, label, n){
+    return '<div class="stat ' + key + (FILTER === key ? ' active' : '') + '" onclick="setFilter(\'' + key + '\')">' +
+           '<div class="n">' + n + '</div><div class="t">' + label + '</div></div>';
+  }
 
   function load(){
     document.getElementById('list').innerHTML = '<div class="loading"><span class="spin"></span> กำลังโหลดงาน...</div>';
@@ -90,17 +114,34 @@
     var firstStage = STAGES[0];
     var lastStage = STAGES[STAGES.length-1];
 
+    // นับสรุป
+    var total = JOBS.length;
+    var cNew  = JOBS.filter(function(j){ return j.status === firstStage; }).length;
+    var cDone = JOBS.filter(function(j){ return j.status === lastStage; }).length;
+    var cProg = total - cNew - cDone; // อยู่ระหว่างขั้นกลาง
+
+    document.getElementById('stats').innerHTML =
+      statCard('all',  'งานทั้งหมด',       total) +
+      statCard('new',  'รอเริ่ม (ใหม่)',    cNew) +
+      statCard('prog', 'กำลังดำเนินการ',   cProg) +
+      statCard('done', 'เสร็จแล้ว',        cDone);
+
     // แจ้งเตือนงานจองใหม่ (ยังอยู่ขั้นแรก)
-    var newCount = JOBS.filter(function(j){ return j.status === firstStage; }).length;
     var al = document.getElementById('newAlert');
-    if(newCount > 0){ al.classList.remove('hide'); al.innerHTML = '🔔 มีงานจองใหม่รอดำเนินการ <b>' + newCount + '</b> งาน'; }
+    if(cNew > 0){ al.classList.remove('hide'); al.innerHTML = '🔔 มีงานจองใหม่รอดำเนินการ <b>' + cNew + '</b> งาน'; }
     else{ al.classList.add('hide'); }
 
     var rows = JOBS.filter(function(j){
+      // กรองตามการ์ดที่เลือก
+      if(FILTER === 'new'  && j.status !== firstStage) return false;
+      if(FILTER === 'done' && j.status !== lastStage)  return false;
+      if(FILTER === 'prog' && (j.status === firstStage || j.status === lastStage)) return false;
+      // กรองตามคำค้น
       if(!q) return true;
       return (j.name + ' ' + j.project + ' ' + j.phone + ' ' + j.area).toLowerCase().indexOf(q) > -1;
     });
-    document.getElementById('count').textContent = 'ทั้งหมด ' + rows.length + ' งาน';
+    var label = { all:'ทั้งหมด', new:'งานใหม่', prog:'กำลังดำเนินการ', done:'เสร็จแล้ว' }[FILTER];
+    document.getElementById('count').textContent = label + ' ' + rows.length + ' งาน';
 
     if(rows.length === 0){ document.getElementById('list').innerHTML = '<div class="empty">ยังไม่มีงาน</div>'; return; }
 
