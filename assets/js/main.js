@@ -45,7 +45,7 @@
 
   /* ---------- contact / booking form ---------- */
   // วาง URL ของ Apps Script Web App (ลงท้าย /exec) ที่นี่ หลัง Deploy เสร็จ
-  var BOOKING_ENDPOINT = "PASTE_APPS_SCRIPT_URL_HERE";
+  var BOOKING_ENDPOINT = "https://script.google.com/macros/s/AKfycbyOL_bFiw8bpR8ZIS44VA3aUFlkMpzLjMcfPl-2wD_R4hjK0Pvs-Mmn93qPhOEtwG2P/exec";
 
   var form = document.querySelector("#contactForm");
   if (form) {
