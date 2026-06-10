@@ -6,6 +6,11 @@ backend:
 media_folder: "assets/uploads"
 public_folder: "/assets/uploads"
 
+# โลโก้ + ปุ่มไปดูเว็บจริง (แสดงบนหน้า login และมุมขวาบนของหลังบ้าน)
+site_url: "https://unrivaled-crepe-9dfb59.netlify.app"
+display_url: "https://unrivaled-crepe-9dfb59.netlify.app"
+logo_url: "https://unrivaled-crepe-9dfb59.netlify.app/assets/img/logo.svg"
+
 # ภาษาของหน้าจอหลังบ้าน
 locale: "en"
 
@@ -30,6 +35,7 @@ collections:
             label: "ผลงานทั้งหมด"
             label_singular: "ผลงาน 1 ชิ้น"
             widget: "list"
+            collapsed: true
             summary: "{{fields.title_th}}"
             fields:
               - { name: "image", label: "รูปภาพผลงาน", widget: "image", required: false, hint: "ไม่ใส่ก็ได้ จะขึ้นเป็นภาพ placeholder" }
@@ -56,6 +62,7 @@ collections:
             label: "บทความทั้งหมด"
             label_singular: "บทความ 1 เรื่อง"
             widget: "list"
+            collapsed: true
             summary: "{{fields.title_th}}"
             fields:
               - { name: "image", label: "รูปหน้าปก", widget: "image", required: false }
@@ -86,6 +93,7 @@ collections:
             label: "แพ็กเกจ"
             label_singular: "แพ็กเกจ 1 อัน"
             widget: "list"
+            collapsed: true
             summary: "{{fields.title_th}} — {{fields.price_th}}"
             fields:
               - { name: "title_th", label: "ชื่อแพ็กเกจ (ไทย)", widget: "string" }
