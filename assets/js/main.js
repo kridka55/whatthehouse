@@ -47,40 +47,70 @@
   // วาง URL ของ Apps Script Web App (ลงท้าย /exec) ที่นี่ หลัง Deploy เสร็จ
   var BOOKING_ENDPOINT = "https://script.google.com/macros/s/AKfycbyOL_bFiw8bpR8ZIS44VA3aUFlkMpzLjMcfPl-2wD_R4hjK0Pvs-Mmn93qPhOEtwG2P/exec";
 
+  // reCAPTCHA v3 site key (ค่าสาธารณะ ใส่ในเว็บได้) — ปล่อย PASTE_ ไว้ = ยังไม่เปิดใช้
+  var RECAPTCHA_SITE_KEY = "PASTE_RECAPTCHA_SITE_KEY_HERE";
+  var recaptchaReady = false;
+
   var form = document.querySelector("#contactForm");
   if (form) {
+    var formLoadedAt = Date.now();
+    var lastSubmitAt = 0;
+
+    // โหลดสคริปต์ reCAPTCHA เฉพาะหน้าที่มีฟอร์ม และเมื่อใส่ site key แล้ว
+    if (RECAPTCHA_SITE_KEY && RECAPTCHA_SITE_KEY.indexOf("PASTE_") !== 0) {
+      var rc = document.createElement("script");
+      rc.src = "https://www.google.com/recaptcha/api.js?render=" + RECAPTCHA_SITE_KEY;
+      rc.onload = function () { recaptchaReady = true; };
+      document.head.appendChild(rc);
+    }
+
     form.addEventListener("submit", function (e) {
       e.preventDefault();
-      // honeypot: if filled, silently drop (bot)
+
+      // honeypot: ถ้าช่องซ่อนมีค่า = บอท
       var hp = form.querySelector('input[name="company"]');
       if (hp && hp.value) return;
+
+      // กันกดถี่: ส่งซ้ำได้ทุก 30 วินาที
+      if (Date.now() - lastSubmitAt < 30000) return;
 
       var btn = form.querySelector('button[type="submit"]');
       var ok = form.querySelector("#formOk");
 
-      // เก็บข้อมูลฟอร์ม
       var data = {};
       new FormData(form).forEach(function (v, k) { data[k] = v; });
+      data.elapsed = Date.now() - formLoadedAt; // กับดักเวลา (server ตรวจ)
 
       function showSuccess() {
+        lastSubmitAt = Date.now();
         if (ok) ok.style.display = "block";
         form.reset();
+        formLoadedAt = Date.now();
         if (btn) { btn.disabled = false; }
       }
 
-      // ยังไม่ได้ตั้งค่า endpoint -> แสดงสำเร็จไปก่อน (กันฟอร์มพัง)
-      if (!BOOKING_ENDPOINT || BOOKING_ENDPOINT.indexOf("PASTE_") === 0) {
-        showSuccess();
-        return;
+      function doSend(token) {
+        data.recaptchaToken = token || "";
+        // ยังไม่ตั้งค่า endpoint -> แสดงสำเร็จไปก่อน (กันฟอร์มพัง)
+        if (!BOOKING_ENDPOINT || BOOKING_ENDPOINT.indexOf("PASTE_") === 0) { showSuccess(); return; }
+        if (btn) { btn.disabled = true; }
+        fetch(BOOKING_ENDPOINT, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(data)
+        }).then(showSuccess).catch(showSuccess);
       }
 
-      if (btn) { btn.disabled = true; }
-      fetch(BOOKING_ENDPOINT, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(data)
-      }).then(showSuccess).catch(showSuccess);
+      // ขอ token จาก reCAPTCHA ถ้าพร้อม ไม่งั้นส่งเลย
+      if (recaptchaReady && window.grecaptcha) {
+        window.grecaptcha.ready(function () {
+          window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: "booking" })
+            .then(doSend).catch(function () { doSend(""); });
+        });
+      } else {
+        doSend("");
+      }
     });
   }
 })();
