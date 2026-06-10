@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{ --green:#2e9e4f; --green-dark:#1e6e36; --green-soft:#e8f3ec; --ink:#16314f; --muted:#6b7a88; --line:#e3e8ee; --bg:#f4f7f9; --red:#d64545; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{ margin:0; font-family:"Prompt","Segoe UI",sans-serif; background:var(--bg); color:var(--ink); }
+  .topbar{ background:var(--green); color:#fff; padding:13px 16px; display:flex; align-items:center; gap:10px; position:sticky; top:0; z-index:10; }
+  .topbar .back{ background:rgba(255,255,255,.2); border:0; color:#fff; width:32px; height:32px; border-radius:8px; font-size:1.1rem; cursor:pointer; }
+  .topbar h1{ font-size:1.02rem; margin:0; flex:1; }
+  .topbar .who{ font-size:.75rem; opacity:.9; }
+  .wrap{ max-width:560px; margin:0 auto; padding:16px; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,.03); }
+  label{ display:block; font-size:.85rem; font-weight:600; margin:12px 0 6px; }
+  input,textarea,select{ width:100%; padding:12px 13px; border:1px solid var(--line); border-radius:10px; font-family:inherit; font-size:1rem; }
+  textarea{ min-height:80px; resize:vertical; }
+  .btn{ display:block; width:100%; border:0; border-radius:11px; padding:14px; font-family:inherit; font-size:1rem; font-weight:700; cursor:pointer; text-align:center; }
+  .btn-green{ background:var(--green); color:#fff; } .btn-green:active{ background:var(--green-dark); }
+  .btn-ghost{ background:#fff; border:1px solid var(--line); color:var(--ink); font-weight:600; }
+  .btn-line{ background:#fff; border:1px dashed var(--green); color:var(--green-dark); font-weight:600; }
+  .btn[disabled]{ opacity:.6; }
+  .err{ background:#fdecea; color:var(--red); border-radius:9px; padding:10px 13px; font-size:.88rem; font-weight:600; margin-top:10px; display:none; }
+  .hide{ display:none !important; }
+  .muted{ color:var(--muted); font-size:.85rem; }
+  .job{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .job .nm{ font-weight:700; }
+  .badge{ font-size:.7rem; padding:3px 9px; border-radius:20px; background:var(--green-soft); color:var(--green-dark); font-weight:700; white-space:nowrap; }
+  .defect-item{ border:1px solid var(--line); border-radius:11px; padding:11px 13px; margin-bottom:9px; }
+  .defect-item .a{ font-weight:700; }
+  .photo-box{ margin-top:8px; }
+  .photo-prev{ width:100%; border-radius:11px; border:1px solid var(--line); margin-top:8px; display:none; }
+  .spin{ display:inline-block; width:15px; height:15px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:s .7s linear infinite; vertical-align:middle; }
+  @keyframes s{ to{ transform:rotate(360deg); } }
+  .toast{ position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:11px 18px; border-radius:10px; font-size:.88rem; opacity:0; transition:.3s; z-index:50; pointer-events:none; max-width:90%; text-align:center; }
+  .toast.show{ opacity:1; }
+  .count-pill{ background:var(--green-soft); color:var(--green-dark); border-radius:10px; padding:10px 13px; font-weight:600; font-size:.9rem; margin-bottom:12px; }
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="loginView">
+  <div class="topbar"><h1>🔧 ทีมช่างตรวจบ้าน</h1></div>
+  <div class="wrap">
+    <div class="card">
+      <div style="text-align:center;font-weight:700;font-size:1.05rem;margin-bottom:4px">WHAT THE HOUSE</div>
+      <div class="muted" style="text-align:center">เข้าสู่ระบบสำหรับช่าง</div>
+      <label>ชื่อช่าง</label>
+      <input id="inName" placeholder="ชื่อตามที่ลงทะเบียนไว้" autocomplete="off">
+      <label>PIN</label>
+      <input id="inPin" type="password" inputmode="numeric" placeholder="รหัส PIN" autocomplete="off">
+      <div style="height:14px"></div>
+      <button class="btn btn-green" id="loginBtn" onclick="doLogin()">เข้าสู่ระบบ</button>
+      <div class="err" id="loginErr"></div>
+    </div>
+    <div class="muted" style="text-align:center">ติดปัญหาเข้าระบบ ติดต่อแอดมินเพื่อตรวจสอบชื่อ/PIN</div>
+  </div>
+</div>
+
+<!-- ===== JOB LIST ===== -->
+<div id="jobsView" class="hide">
+  <div class="topbar"><h1>งานที่ต้องตรวจ</h1><span class="who" id="whoTop"></span><button class="back" onclick="logout()" title="ออกจากระบบ">⎋</button></div>
+  <div class="wrap">
+    <button class="btn btn-ghost" style="margin-bottom:12px" onclick="loadJobs()">🔄 รีเฟรชรายการงาน</button>
+    <div id="jobsList"><div class="muted" style="text-align:center;padding:30px"><span class="spin" style="border-color:#2e9e4f;border-top-color:transparent"></span> กำลังโหลด...</div></div>
+  </div>
+</div>
+
+<!-- ===== DEFECT LOGGING ===== -->
+<div id="defectView" class="hide">
+  <div class="topbar"><button class="back" onclick="backToJobs()">←</button><h1 id="jobTitle">งาน</h1></div>
+  <div class="wrap">
+    <div class="count-pill" id="jobInfo"></div>
+
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:4px">➕ เพิ่มจุดที่ตรวจพบ (Defect)</div>
+      <label>พื้นที่ / ห้อง</label>
+      <input id="dArea" list="areaList" placeholder="เช่น ห้องนอน 1, ห้องน้ำ, ระเบียง">
+      <datalist id="areaList">
+        <option value="ห้องนั่งเล่น"><option value="ห้องครัว"><option value="ห้องนอน 1"><option value="ห้องนอน 2">
+        <option value="ห้องนอน 3"><option value="ห้องน้ำ 1"><option value="ห้องน้ำ 2"><option value="ระเบียง">
+        <option value="โรงรถ"><option value="หลังคา / ฝ้า"><option value="ระบบไฟฟ้า"><option value="ระบบประปา">
+        <option value="ผนัง / สี"><option value="พื้น"><option value="ประตู / หน้าต่าง"><option value="ภายนอก / รอบบ้าน">
+      </datalist>
+      <label>ลำดับจุด (ในพื้นที่นี้)</label>
+      <input id="dNumber" type="number" inputmode="numeric" min="1" value="1">
+      <label>คำอธิบาย / คอมเมนต์</label>
+      <textarea id="dDesc" placeholder="อธิบายสิ่งที่พบ เช่น รอยร้าวผนัง, ท่อรั่ว, สายไฟไม่เรียบร้อย"></textarea>
+      <label>รูปถ่าย</label>
+      <input id="dPhoto" type="file" accept="image/*" capture="environment" class="hide" onchange="onPhoto(this)">
+      <button class="btn btn-line" onclick="document.getElementById('dPhoto').click()">📷 ถ่ายรูป / เลือกรูป</button>
+      <img id="dPrev" class="photo-prev">
+      <div style="height:14px"></div>
+      <button class="btn btn-green" id="saveDefectBtn" onclick="submitDefect()">บันทึกจุดนี้</button>
+      <div class="err" id="defectErr"></div>
+    </div>
+
+    <div style="font-weight:700;margin:6px 2px 10px">จุดที่บันทึกแล้ว (<span id="dCount">0</span>)</div>
+    <div id="defectList"></div>
+
+    <div style="height:6px"></div>
+    <button class="btn btn-green" id="reportBtn" onclick="makeReport()">📄 สร้างรายงาน PDF</button>
+    <div class="muted" style="text-align:center;margin-top:8px">เมื่อสร้างรายงาน สถานะงานจะขยับเป็น "จัดทำรายงาน" อัตโนมัติ</div>
+  </div>
+</div>
+
+<canvas id="cv" class="hide"></canvas>
+<div class="toast" id="toast"></div>
+
+<script>
+  var AUTH = { name: '', pin: '' };
+  var CUR = null;          // งานที่กำลังตรวจ
+  var STAGES = [];
+  var photoData = null;    // {base64, type, name}
+
+  function $(id){ return document.getElementById(id); }
+  function show(view){ ['loginView','jobsView','defectView'].forEach(function(v){ $(v).classList.toggle('hide', v !== view); }); }
+  function esc(s){ return String(s||'').replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  var tT;
+  function toast(m){ var t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(tT); tT=setTimeout(function(){ t.classList.remove('show'); }, 2800); }
+  function showErr(id,msg){ var e=$(id); e.textContent=msg; e.style.display='block'; }
+  function hideErr(id){ $(id).style.display='none'; }
+
+  // จำการล็อกอินไว้ (ไม่ต้องพิมพ์ใหม่ทุกครั้ง)
+  try { var saved = JSON.parse(localStorage.getItem('wth_tech')||'null'); if(saved && saved.name){ AUTH = saved; } } catch(e){}
+
+  function doLogin(){
+    var name = $('inName').value.trim(), pin = $('inPin').value.trim();
+    if(!name || !pin){ showErr('loginErr','กรอกชื่อช่างและ PIN'); return; }
+    hideErr('loginErr');
+    var b=$('loginBtn'); b.disabled=true; b.innerHTML='<span class="spin"></span> กำลังเข้า...';
+    google.script.run.withSuccessHandler(function(res){
+      b.disabled=false; b.textContent='เข้าสู่ระบบ';
+      if(res.ok){ AUTH={name:res.name,pin:pin}; try{localStorage.setItem('wth_tech',JSON.stringify(AUTH));}catch(e){} enterApp(); }
+      else showErr('loginErr', res.error||'เข้าไม่สำเร็จ');
+    }).withFailureHandler(function(e){ b.disabled=false; b.textContent='เข้าสู่ระบบ'; showErr('loginErr','ผิดพลาด: '+e); })
+      .techLogin(name, pin);
+  }
+
+  function logout(){ try{localStorage.removeItem('wth_tech');}catch(e){} AUTH={name:'',pin:''}; show('loginView'); }
+
+  function enterApp(){ $('whoTop').textContent='👷 '+AUTH.name; show('jobsView'); loadJobs(); }
+
+  function loadJobs(){
+    $('jobsList').innerHTML='<div class="muted" style="text-align:center;padding:30px"><span class="spin" style="border-color:#2e9e4f;border-top-color:transparent"></span> กำลังโหลด...</div>';
+    google.script.run.withSuccessHandler(function(res){
+      if(!res.ok){ if(res.error==='unauthorized'){ logout(); } return; }
+      STAGES=res.stages;
+      if(res.jobs.length===0){ $('jobsList').innerHTML='<div class="card" style="text-align:center" class="muted">ยังไม่มีงานที่ต้องตรวจ</div>'; return; }
+      $('jobsList').innerHTML = res.jobs.map(function(j){
+        var sub=[]; if(j.project) sub.push(esc(j.project)); if(j.area) sub.push('📍'+esc(j.area)); if(j.date) sub.push('🗓️'+esc(j.date));
+        return '<div class="card job" onclick=\'openJob('+JSON.stringify(j).replace(/'/g,"&#39;")+')\'>'+
+          '<div><div class="nm">'+esc(j.name)+'</div><div class="muted">'+sub.join('  ·  ')+'</div>'+
+          (j.tech?'<div class="muted">👷 '+esc(j.tech)+'</div>':'')+'</div>'+
+          '<span class="badge">'+esc(j.status)+'</span></div>';
+      }).join('');
+    }).withFailureHandler(function(e){ $('jobsList').innerHTML='<div class="card" style="text-align:center;color:#d64545">โหลดไม่สำเร็จ: '+e+'</div>'; })
+      .techGetJobs(AUTH.name, AUTH.pin);
+  }
+
+  function openJob(j){
+    CUR=j; clearForm();
+    $('jobTitle').textContent=j.name;
+    $('jobInfo').innerHTML='👤 '+esc(j.name)+(j.project?'  ·  '+esc(j.project):'')+(j.phone?'<br>📞 '+esc(j.phone):'');
+    show('defectView');
+    // บันทึกว่าช่างเริ่มตรวจงานนี้ (อัปสถานะ -> ตรวจหน้างาน)
+    google.script.run.techStartJob(AUTH.name, AUTH.pin, j.jobId);
+    loadDefects();
+  }
+  function backToJobs(){ show('jobsView'); loadJobs(); }
+
+  function loadDefects(){
+    google.script.run.withSuccessHandler(function(res){
+      if(!res.ok) return;
+      var ds=res.defects;
+      $('dCount').textContent=ds.length;
+      $('defectList').innerHTML = ds.length? ds.map(function(d,i){
+        return '<div class="defect-item"><div class="a">'+(i+1)+'. '+esc(d.area||'-')+(d.number?'  (จุดที่ '+esc(d.number)+')':'')+'</div>'+
+          (d.description?'<div class="muted">'+esc(d.description)+'</div>':'')+
+          (d.hasPhoto?'<div class="muted">📷 มีรูปแนบ</div>':'')+'</div>';
+      }).join('') : '<div class="muted" style="padding:6px 2px">ยังไม่มีจุดที่บันทึก</div>';
+      // ตั้งเลขลำดับถัดไป
+      $('dNumber').value = ds.length+1;
+    }).techGetDefects(AUTH.name, AUTH.pin, CUR.jobId);
+  }
+
+  // บีบอัดรูปก่อนส่ง (ลดขนาด/ประหยัดเน็ต)
+  function onPhoto(input){
+    var f=input.files[0]; if(!f) return;
+    var img=new Image();
+    img.onload=function(){
+      var max=1280, w=img.width, h=img.height;
+      if(w>max||h>max){ if(w>h){ h=Math.round(h*max/w); w=max; } else { w=Math.round(w*max/h); h=max; } }
+      var cv=$('cv'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h);
+      var dataUrl=cv.toDataURL('image/jpeg',0.7);
+      photoData={ base64:dataUrl.split(',')[1], type:'image/jpeg', name:'defect_'+Date.now()+'.jpg' };
+      var p=$('dPrev'); p.src=dataUrl; p.style.display='block';
+    };
+    img.src=URL.createObjectURL(f);
+  }
+
+  function clearForm(){ $('dArea').value=''; $('dNumber').value='1'; $('dDesc').value=''; $('dPrev').style.display='none'; $('dPhoto').value=''; photoData=null; hideErr('defectErr'); }
+
+  function submitDefect(){
+    var area=$('dArea').value.trim(), desc=$('dDesc').value.trim();
+    if(!area && !desc && !photoData){ showErr('defectErr','กรอกพื้นที่ หรือคำอธิบาย หรือแนบรูป อย่างน้อย 1 อย่าง'); return; }
+    hideErr('defectErr');
+    var b=$('saveDefectBtn'); b.disabled=true; b.innerHTML='<span class="spin"></span> กำลังบันทึก...';
+    var payload={ area:area, number:$('dNumber').value, description:desc };
+    if(photoData){ payload.photoBase64=photoData.base64; payload.photoType=photoData.type; payload.photoName=photoData.name; }
+    google.script.run.withSuccessHandler(function(res){
+      b.disabled=false; b.textContent='บันทึกจุดนี้';
+      if(res.ok){ toast('✓ บันทึกจุดเรียบร้อย'); clearForm(); loadDefects(); }
+      else showErr('defectErr', res.error||'บันทึกไม่สำเร็จ');
+    }).withFailureHandler(function(e){ b.disabled=false; b.textContent='บันทึกจุดนี้'; showErr('defectErr','ผิดพลาด: '+e); })
+      .techAddDefect(AUTH.name, AUTH.pin, CUR.jobId, payload);
+  }
+
+  function makeReport(){
+    var b=$('reportBtn'); b.disabled=true; b.innerHTML='<span class="spin"></span> กำลังสร้างรายงาน...';
+    google.script.run.withSuccessHandler(function(res){
+      b.disabled=false; b.textContent='📄 สร้างรายงาน PDF';
+      if(res.ok){ toast('✓ สร้างรายงานสำเร็จ'); window.open(res.pdfUrl,'_blank'); }
+      else toast('สร้างไม่สำเร็จ: '+(res.error||''));
+    }).withFailureHandler(function(e){ b.disabled=false; b.textContent='📄 สร้างรายงาน PDF'; toast('ผิดพลาด: '+e); })
+      .techGenerateReport(AUTH.name, AUTH.pin, CUR.jobId);
+  }
+
+  // เริ่มต้น: ถ้าจำล็อกอินได้ ลองเข้าเลย
+  if(AUTH.name && AUTH.pin){ enterApp(); } else { show('loginView'); }
+</script>
+</body>
+</html>

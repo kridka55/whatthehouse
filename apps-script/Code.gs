@@ -110,10 +110,19 @@ function doPost(e) {
 }
 
 
-/*** ===== เสิร์ฟหน้า Dashboard (ต้องมี key ที่ถูกต้อง) ===== ***/
+/*** ===== เสิร์ฟหน้าเว็บ: ?app=tech = แอปช่าง, ?key=... = Dashboard ===== ***/
 function doGet(e) {
-  var key = (e && e.parameter && e.parameter.key) || '';
-  if (key === CONFIG.DASHBOARD_KEY) {
+  var p = (e && e.parameter) || {};
+
+  // แอปทีมช่าง (ล็อกอินด้วยชื่อ+PIN ในหน้าแอป)
+  if (p.app === 'tech') {
+    return HtmlService.createTemplateFromFile('Technician').evaluate()
+      .setTitle('WTH ช่างตรวจบ้าน')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  }
+
+  // Dashboard แอดมิน (ต้องมี key)
+  if (p.key === CONFIG.DASHBOARD_KEY) {
     var t = HtmlService.createTemplateFromFile('Dashboard');
     return t.evaluate()
       .setTitle('WTH Dashboard')
@@ -265,9 +274,232 @@ function notifyAdmin_(jobId, name, project, data, folderUrl) {
   }
 }
 
+/*** ==============================================================
+ *   ระบบทีมช่างลงพื้นที่ (Technician app) — เชื่อมกับงานตรวจบ้านเดิม
+ *  ============================================================== ***/
+
+var TECH_SHEET = 'ช่าง';        // ชีตรายชื่อช่าง: [ชื่อช่าง, PIN, ใช้งาน]
+var DEFECT_SHEET = 'Defects';   // ชีตจุดที่ตรวจพบ
+var DEFECT_HEADERS = ['DefectID', 'JobID', 'วันที่', 'ช่าง', 'พื้นที่', 'ลำดับ', 'คำอธิบาย', 'ลิงก์รูป', 'FileId'];
+var STAGE_INSPECT = 2; // index ของ 'ตรวจหน้างาน'
+var STAGE_REPORT = 3;  // index ของ 'จัดทำรายงาน'
+
+function getTechSheet_() {
+  var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+  var sh = ss.getSheetByName(TECH_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(TECH_SHEET);
+    sh.appendRow(['ชื่อช่าง', 'PIN', 'ใช้งาน (yes/no)']);
+    sh.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#e8f3ec');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function getDefectSheet_() {
+  var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+  var sh = ss.getSheetByName(DEFECT_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(DEFECT_SHEET);
+    sh.appendRow(DEFECT_HEADERS);
+    sh.getRange(1, 1, 1, DEFECT_HEADERS.length).setFontWeight('bold').setBackground('#e8f3ec');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+// ตรวจชื่อช่าง + PIN จากชีต "ช่าง"
+function techVerify_(name, pin) {
+  if (!name || !pin) return false;
+  var vals = getTechSheet_().getDataRange().getValues();
+  for (var i = 1; i < vals.length; i++) {
+    var n = String(vals[i][0]).trim();
+    var p = String(vals[i][1]).trim();
+    var active = String(vals[i][2] === '' ? 'yes' : vals[i][2]).trim().toLowerCase();
+    if (n && n === String(name).trim() && p === String(pin).trim() && active !== 'no') return true;
+  }
+  return false;
+}
+
+function techLogin(name, pin) {
+  return techVerify_(name, pin)
+    ? { ok: true, name: String(name).trim() }
+    : { ok: false, error: 'ชื่อช่างหรือ PIN ไม่ถูกต้อง' };
+}
+
+// งานที่ช่างต้องตรวจ (ยังไม่ส่งงาน)
+function techGetJobs(name, pin) {
+  if (!techVerify_(name, pin)) return { ok: false, error: 'unauthorized' };
+  var values = getSheet_().getDataRange().getValues();
+  var last = CONFIG.STAGES[CONFIG.STAGES.length - 1];
+  var jobs = [];
+  for (var i = 1; i < values.length; i++) {
+    var r = values[i];
+    if (!r[0] || r[2] === last) continue;
+    jobs.push({
+      jobId: r[0], status: r[2], name: r[3], phone: String(r[4]),
+      type: r[6], area: r[7], project: r[8], date: String(r[9]),
+      folderUrl: r[11], tech: String(r[14] || '')
+    });
+  }
+  jobs.reverse();
+  return { ok: true, stages: CONFIG.STAGES, jobs: jobs };
+}
+
+// ช่างเริ่มตรวจงาน -> ขยับสถานะเป็น "ตรวจหน้างาน" + บันทึกชื่อช่าง
+function techStartJob(name, pin, jobId) {
+  if (!techVerify_(name, pin)) return { ok: false, error: 'unauthorized' };
+  var sheet = getSheet_();
+  var row = findRow_(sheet, jobId);
+  if (row < 0) return { ok: false, error: 'ไม่พบงาน' };
+  if (CONFIG.STAGES.indexOf(sheet.getRange(row, 3).getValue()) < STAGE_INSPECT) {
+    sheet.getRange(row, 3).setValue(CONFIG.STAGES[STAGE_INSPECT]);
+  }
+  sheet.getRange(row, 15).setValue(String(name).trim()); // คอลัมน์ O = ช่างผู้ตรวจ
+  sheet.getRange(row, 14).setValue(nowStr_());
+  return { ok: true };
+}
+
+// ดึงจุด defect ของงานหนึ่ง
+function techGetDefects(name, pin, jobId) {
+  if (!techVerify_(name, pin)) return { ok: false, error: 'unauthorized' };
+  var vals = getDefectSheet_().getDataRange().getValues();
+  var list = [];
+  for (var i = 1; i < vals.length; i++) {
+    var r = vals[i];
+    if (String(r[1]) === String(jobId)) {
+      list.push({ defectId: r[0], date: String(r[2]), tech: r[3], area: r[4], number: r[5], description: r[6], hasPhoto: !!r[8] });
+    }
+  }
+  return { ok: true, defects: list };
+}
+
+// เพิ่มจุด defect + อัปรูปเข้าโฟลเดอร์ Drive ของงาน
+function techAddDefect(name, pin, jobId, defect) {
+  if (!techVerify_(name, pin)) return { ok: false, error: 'unauthorized' };
+  try {
+    var bookings = getSheet_();
+    var row = findRow_(bookings, jobId);
+    if (row < 0) return { ok: false, error: 'ไม่พบงาน' };
+    var folderId = bookings.getRange(row, 13).getValue(); // คอลัมน์ M = FolderId
+    var photoUrl = '', fileId = '';
+    if (defect.photoBase64) {
+      var folder = DriveApp.getFolderById(folderId);
+      var bytes = Utilities.base64Decode(defect.photoBase64);
+      var blob = Utilities.newBlob(bytes, defect.photoType || 'image/jpeg', defect.photoName || ('defect_' + Date.now() + '.jpg'));
+      var file = folder.createFile(blob);
+      photoUrl = file.getUrl();   // ลิงก์ดูใน Drive (เจ้าของ/แอดมินเปิดได้)
+      fileId = file.getId();
+    }
+    var defectId = 'D' + Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyMMddHHmmss');
+    getDefectSheet_().appendRow([
+      defectId, jobId, nowStr_(), String(name).trim(),
+      String(defect.area || ''), defect.number || '', String(defect.description || ''),
+      photoUrl, fileId
+    ]);
+    return { ok: true, defectId: defectId };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
+// สร้างรายงาน PDF จาก defect ทั้งหมดของงาน -> เก็บในโฟลเดอร์ Drive
+function techGenerateReport(name, pin, jobId) {
+  if (!techVerify_(name, pin)) return { ok: false, error: 'unauthorized' };
+  try {
+    var bookings = getSheet_();
+    var row = findRow_(bookings, jobId);
+    if (row < 0) return { ok: false, error: 'ไม่พบงาน' };
+    var b = bookings.getRange(row, 1, 1, 15).getValues()[0];
+    var custName = b[3], phone = String(b[4]), custArea = b[7], project = b[8], folderId = b[12];
+
+    var dvals = getDefectSheet_().getDataRange().getValues();
+    var defects = [];
+    for (var i = 1; i < dvals.length; i++) {
+      if (String(dvals[i][1]) === String(jobId)) {
+        defects.push({ area: String(dvals[i][4]), number: dvals[i][5], description: String(dvals[i][6]), fileId: dvals[i][8] });
+      }
+    }
+    if (defects.length === 0) return { ok: false, error: 'ยังไม่มีจุดที่ตรวจพบ กรุณาเพิ่มอย่างน้อย 1 จุดก่อนออกรายงาน' };
+
+    var dateStr = Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'd MMM yyyy');
+    var docName = 'รายงานตรวจบ้าน - ' + custName + ' - ' + Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy-MM-dd');
+    var doc = DocumentApp.create(docName);
+    var body = doc.getBody();
+    body.setMarginTop(40).setMarginBottom(40).setMarginLeft(45).setMarginRight(45);
+
+    body.appendParagraph(CONFIG.BUSINESS_NAME).setHeading(DocumentApp.ParagraphHeading.TITLE);
+    body.appendParagraph('รายงานผลการตรวจบ้าน / Home Inspection Report').setHeading(DocumentApp.ParagraphHeading.SUBTITLE);
+
+    var info = body.appendTable([
+      ['ลูกค้า', custName], ['โครงการ / ที่ตั้ง', project + (custArea ? '  /  ' + custArea : '')],
+      ['เบอร์ติดต่อ', phone], ['ช่างผู้ตรวจ', String(name)],
+      ['วันที่ตรวจ', dateStr], ['จำนวนจุดที่พบ', defects.length + ' จุด']
+    ]);
+    info.setBorderWidth(0);
+    for (var ri = 0; ri < info.getNumRows(); ri++) info.getRow(ri).getCell(0).editAsText().setBold(true);
+
+    body.appendParagraph('สรุปภาพรวม').setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    var byArea = {};
+    defects.forEach(function (d) { var a = d.area || 'ไม่ระบุ'; byArea[a] = (byArea[a] || 0) + 1; });
+    var sumRows = [['พื้นที่', 'จำนวนจุดที่พบ']];
+    Object.keys(byArea).forEach(function (a) { sumRows.push([a, String(byArea[a])]); });
+    var st = body.appendTable(sumRows);
+    st.getRow(0).editAsText().setBold(true);
+    st.getRow(0).getCell(0).setBackgroundColor('#e8f3ec');
+    st.getRow(0).getCell(1).setBackgroundColor('#e8f3ec');
+
+    body.appendParagraph('รายละเอียดจุดที่ตรวจพบ').setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    defects.forEach(function (d, idx) {
+      body.appendParagraph((idx + 1) + '. ' + (d.area || '-') + (d.number ? '  (จุดที่ ' + d.number + ')' : ''))
+        .setHeading(DocumentApp.ParagraphHeading.HEADING2);
+      body.appendParagraph('รายละเอียด: ' + (d.description || '-'));
+      if (d.fileId) {
+        try {
+          var pic = body.appendImage(DriveApp.getFileById(d.fileId).getBlob());
+          var w = pic.getWidth(), h = pic.getHeight(), maxW = 340;
+          if (w > maxW) { pic.setWidth(maxW); pic.setHeight(Math.round(h * maxW / w)); }
+        } catch (e) { body.appendParagraph('(แนบรูปไม่สำเร็จ)'); }
+      }
+      body.appendParagraph('');
+    });
+
+    body.appendParagraph('ความเห็น / สรุปท้ายรายงาน').setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    body.appendParagraph('________________________________________________________________');
+    body.appendParagraph('________________________________________________________________');
+    body.appendParagraph('');
+    var sign = body.appendTable([
+      ['ลงชื่อ ช่างผู้ตรวจ', 'ลงชื่อ ผู้รับรายงาน'],
+      ['', ''],
+      ['(  ' + name + '  )', '(________________________)'],
+      ['วันที่ ' + dateStr, 'วันที่ ____/____/____']
+    ]);
+    sign.setBorderWidth(0);
+
+    doc.saveAndClose();
+    var pdf = DriveApp.getFileById(doc.getId()).getAs('application/pdf').setName(docName + '.pdf');
+    var pdfFile = DriveApp.getFolderById(folderId).createFile(pdf);
+    DriveApp.getFileById(doc.getId()).setTrashed(true); // ลบไฟล์ Doc ชั่วคราว
+
+    if (CONFIG.STAGES.indexOf(bookings.getRange(row, 3).getValue()) < STAGE_REPORT) {
+      bookings.getRange(row, 3).setValue(CONFIG.STAGES[STAGE_REPORT]);
+    }
+    bookings.getRange(row, 14).setValue(nowStr_());
+
+    return { ok: true, pdfUrl: pdfFile.getUrl(), name: pdfFile.getName() };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
+
 /*** ===== ทดสอบสิทธิ์ครั้งแรก (กดรันฟังก์ชันนี้เพื่ออนุญาตสิทธิ์) ===== ***/
 function setup() {
-  getSheet_();                                  // เข้าถึง Sheet
-  DriveApp.getFolderById(CONFIG.DRIVE_PARENT_FOLDER_ID); // เข้าถึง Drive
-  Logger.log('พร้อมใช้งาน: ชีตและโฟลเดอร์เชื่อมต่อเรียบร้อย');
+  getSheet_();                                            // เข้าถึง Sheet งานจอง
+  getTechSheet_();                                        // สร้างชีต "ช่าง"
+  getDefectSheet_();                                      // สร้างชีต "Defects"
+  DriveApp.getFolderById(CONFIG.DRIVE_PARENT_FOLDER_ID);  // เข้าถึง Drive
+  var d = DocumentApp.create('wth-permission-check');     // ขอสิทธิ์ DocumentApp (สำหรับออก PDF)
+  DriveApp.getFileById(d.getId()).setTrashed(true);
+  Logger.log('พร้อมใช้งาน: ชีต/โฟลเดอร์/เอกสารเชื่อมต่อเรียบร้อย — เพิ่มรายชื่อช่างในชีต "ช่าง" ได้เลย');
 }
