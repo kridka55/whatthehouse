@@ -29,6 +29,12 @@
   .badge{ font-size:.7rem; padding:3px 9px; border-radius:20px; background:var(--green-soft); color:var(--green-dark); font-weight:700; white-space:nowrap; }
   .defect-item{ border:1px solid var(--line); border-radius:11px; padding:11px 13px; margin-bottom:9px; }
   .defect-item .a{ font-weight:700; }
+  .defect-item .acts{ display:flex; gap:8px; margin-top:9px; }
+  .mini{ padding:7px 14px; border-radius:8px; font-size:.82rem; font-weight:600; border:1px solid var(--line); background:#fff; cursor:pointer; font-family:inherit; }
+  .mini.edit{ color:var(--green-dark); }
+  .mini.del{ color:var(--red); border-color:#f3c9c9; }
+  .edit-banner{ background:#fff8e1; border:1px solid #ffe08a; color:#7a5b00; border-radius:9px; padding:9px 12px; font-size:.85rem; font-weight:600; margin-bottom:10px; display:none; justify-content:space-between; align-items:center; gap:8px; }
+  .edit-banner button{ background:transparent; border:0; color:#7a5b00; text-decoration:underline; cursor:pointer; font-family:inherit; font-size:.85rem; }
   .photo-box{ margin-top:8px; }
   .photo-prev{ width:100%; border-radius:11px; border:1px solid var(--line); margin-top:8px; display:none; }
   .spin{ display:inline-block; width:15px; height:15px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:s .7s linear infinite; vertical-align:middle; }
@@ -75,7 +81,8 @@
     <div class="count-pill" id="jobInfo"></div>
 
     <div class="card">
-      <div style="font-weight:700;margin-bottom:4px">➕ เพิ่มจุดที่ตรวจพบ (Defect)</div>
+      <div class="edit-banner" id="editBanner"><span>✏️ กำลังแก้ไขจุดที่บันทึกไว้</span><button onclick="cancelEdit()">ยกเลิก</button></div>
+      <div style="font-weight:700;margin-bottom:4px" id="formTitle">➕ เพิ่มจุดที่ตรวจพบ (Defect)</div>
       <label>พื้นที่ / ห้อง</label>
       <input id="dArea" list="areaList" placeholder="เช่น ห้องนอน 1, ห้องน้ำ, ระเบียง">
       <datalist id="areaList">
@@ -114,6 +121,8 @@
   var CUR = null;          // งานที่กำลังตรวจ
   var STAGES = [];
   var photoData = null;    // {base64, type, name}
+  var DEFECTS = [];        // จุดที่บันทึกแล้วของงานนี้
+  var editingId = null;    // กำลังแก้ไขจุดไหน (null = เพิ่มใหม่)
 
   function $(id){ return document.getElementById(id); }
   function show(view){ ['loginView','jobsView','defectView'].forEach(function(v){ $(v).classList.toggle('hide', v !== view); }); }
@@ -174,15 +183,17 @@
   function loadDefects(){
     google.script.run.withSuccessHandler(function(res){
       if(!res.ok) return;
-      var ds=res.defects;
+      var ds=res.defects; DEFECTS=ds;
       $('dCount').textContent=ds.length;
       $('defectList').innerHTML = ds.length? ds.map(function(d,i){
         return '<div class="defect-item"><div class="a">'+(i+1)+'. '+esc(d.area||'-')+(d.number?'  (จุดที่ '+esc(d.number)+')':'')+'</div>'+
           (d.description?'<div class="muted">'+esc(d.description)+'</div>':'')+
-          (d.hasPhoto?'<div class="muted">📷 มีรูปแนบ</div>':'')+'</div>';
+          (d.hasPhoto?'<div class="muted">📷 มีรูปแนบ</div>':'')+
+          '<div class="acts"><button class="mini edit" onclick="editDefect(\''+d.defectId+'\')">✏️ แก้ไข</button>'+
+          '<button class="mini del" onclick="delDefect(\''+d.defectId+'\')">🗑️ ลบ</button></div></div>';
       }).join('') : '<div class="muted" style="padding:6px 2px">ยังไม่มีจุดที่บันทึก</div>';
-      // ตั้งเลขลำดับถัดไป
-      $('dNumber').value = ds.length+1;
+      // ตั้งเลขลำดับถัดไป (เฉพาะตอนเพิ่มใหม่)
+      if(!editingId) $('dNumber').value = ds.length+1;
     }).techGetDefects(AUTH.name, AUTH.pin, CUR.jobId);
   }
 
@@ -201,21 +212,57 @@
     img.src=URL.createObjectURL(f);
   }
 
-  function clearForm(){ $('dArea').value=''; $('dNumber').value='1'; $('dDesc').value=''; $('dPrev').style.display='none'; $('dPhoto').value=''; photoData=null; hideErr('defectErr'); }
+  function clearForm(){
+    $('dArea').value=''; $('dNumber').value=(DEFECTS.length+1); $('dDesc').value='';
+    $('dPrev').style.display='none'; $('dPhoto').value=''; photoData=null; hideErr('defectErr');
+    editingId=null; $('editBanner').style.display='none';
+    $('formTitle').textContent='➕ เพิ่มจุดที่ตรวจพบ (Defect)';
+    $('saveDefectBtn').textContent='บันทึกจุดนี้';
+  }
+  function cancelEdit(){ clearForm(); }
+
+  function editDefect(id){
+    var d=null; for(var i=0;i<DEFECTS.length;i++){ if(DEFECTS[i].defectId===id){ d=DEFECTS[i]; break; } }
+    if(!d) return;
+    editingId=id;
+    $('dArea').value=d.area||''; $('dNumber').value=d.number||''; $('dDesc').value=d.description||'';
+    $('dPrev').style.display='none'; $('dPhoto').value=''; photoData=null; hideErr('defectErr');
+    $('editBanner').style.display='flex';
+    $('formTitle').textContent='✏️ แก้ไขจุดนี้';
+    $('saveDefectBtn').textContent='อัปเดตจุดนี้';
+    window.scrollTo({ top:0, behavior:'smooth' });
+    toast(d.hasPhoto ? 'แก้ข้อมูลได้เลย (ถ่ายรูปใหม่ถ้าต้องการเปลี่ยนรูป)' : 'แก้ข้อมูลได้เลย');
+  }
+
+  function delDefect(id){
+    if(!confirm('ลบจุดนี้? (ลบรูปออกจาก Drive ด้วย)')) return;
+    google.script.run.withSuccessHandler(function(res){
+      if(res.ok){ toast('ลบแล้ว'); if(editingId===id) clearForm(); loadDefects(); }
+      else toast('ลบไม่สำเร็จ: '+(res.error||''));
+    }).withFailureHandler(function(e){ toast('ผิดพลาด: '+e); })
+      .techDeleteDefect(AUTH.name, AUTH.pin, id);
+  }
 
   function submitDefect(){
     var area=$('dArea').value.trim(), desc=$('dDesc').value.trim();
     if(!area && !desc && !photoData){ showErr('defectErr','กรอกพื้นที่ หรือคำอธิบาย หรือแนบรูป อย่างน้อย 1 อย่าง'); return; }
     hideErr('defectErr');
-    var b=$('saveDefectBtn'); b.disabled=true; b.innerHTML='<span class="spin"></span> กำลังบันทึก...';
+    var b=$('saveDefectBtn'); var label=b.textContent; b.disabled=true; b.innerHTML='<span class="spin"></span> กำลังบันทึก...';
     var payload={ area:area, number:$('dNumber').value, description:desc };
     if(photoData){ payload.photoBase64=photoData.base64; payload.photoType=photoData.type; payload.photoName=photoData.name; }
-    google.script.run.withSuccessHandler(function(res){
-      b.disabled=false; b.textContent='บันทึกจุดนี้';
-      if(res.ok){ toast('✓ บันทึกจุดเรียบร้อย'); clearForm(); loadDefects(); }
+    function done(res){
+      b.disabled=false; b.textContent=label;
+      if(res.ok){ toast(editingId?'✓ อัปเดตจุดเรียบร้อย':'✓ บันทึกจุดเรียบร้อย'); clearForm(); loadDefects(); }
       else showErr('defectErr', res.error||'บันทึกไม่สำเร็จ');
-    }).withFailureHandler(function(e){ b.disabled=false; b.textContent='บันทึกจุดนี้'; showErr('defectErr','ผิดพลาด: '+e); })
-      .techAddDefect(AUTH.name, AUTH.pin, CUR.jobId, payload);
+    }
+    function fail(e){ b.disabled=false; b.textContent=label; showErr('defectErr','ผิดพลาด: '+e); }
+    if(editingId){
+      google.script.run.withSuccessHandler(done).withFailureHandler(fail)
+        .techUpdateDefect(AUTH.name, AUTH.pin, CUR.jobId, editingId, payload);
+    } else {
+      google.script.run.withSuccessHandler(done).withFailureHandler(fail)
+        .techAddDefect(AUTH.name, AUTH.pin, CUR.jobId, payload);
+    }
   }
 
   function makeReport(){

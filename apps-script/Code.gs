@@ -403,6 +403,57 @@ function techAddDefect(name, pin, jobId, defect) {
   }
 }
 
+function findDefectRow_(sh, defectId) {
+  var ids = sh.getRange(1, 1, sh.getLastRow(), 1).getValues();
+  for (var i = 0; i < ids.length; i++) {
+    if (String(ids[i][0]) === String(defectId)) return i + 1;
+  }
+  return -1;
+}
+
+// แก้ไขจุด defect (เปลี่ยนพื้นที่/ลำดับ/คำอธิบาย และเปลี่ยนรูปได้ถ้าส่งรูปใหม่มา)
+function techUpdateDefect(name, pin, jobId, defectId, defect) {
+  if (!techVerify_(name, pin)) return { ok: false, error: 'unauthorized' };
+  try {
+    var sh = getDefectSheet_();
+    var row = findDefectRow_(sh, defectId);
+    if (row < 0) return { ok: false, error: 'ไม่พบจุดนี้' };
+    sh.getRange(row, 5).setValue(String(defect.area || ''));
+    sh.getRange(row, 6).setValue(defect.number || '');
+    sh.getRange(row, 7).setValue(String(defect.description || ''));
+    if (defect.photoBase64) {
+      var bookings = getSheet_();
+      var folderId = bookings.getRange(findRow_(bookings, jobId), 13).getValue();
+      var bytes = Utilities.base64Decode(defect.photoBase64);
+      var blob = Utilities.newBlob(bytes, defect.photoType || 'image/jpeg', defect.photoName || ('defect_' + Date.now() + '.jpg'));
+      var file = DriveApp.getFolderById(folderId).createFile(blob);
+      var oldFileId = sh.getRange(row, 9).getValue();
+      if (oldFileId) { try { DriveApp.getFileById(oldFileId).setTrashed(true); } catch (e) {} }
+      sh.getRange(row, 8).setValue(file.getUrl());
+      sh.getRange(row, 9).setValue(file.getId());
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
+// ลบจุด defect (ลบรูปใน Drive ด้วย)
+function techDeleteDefect(name, pin, defectId) {
+  if (!techVerify_(name, pin)) return { ok: false, error: 'unauthorized' };
+  try {
+    var sh = getDefectSheet_();
+    var row = findDefectRow_(sh, defectId);
+    if (row < 0) return { ok: false, error: 'ไม่พบจุดนี้' };
+    var fileId = sh.getRange(row, 9).getValue();
+    if (fileId) { try { DriveApp.getFileById(fileId).setTrashed(true); } catch (e) {} }
+    sh.deleteRow(row);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
 // สร้างรายงาน PDF จาก defect ทั้งหมดของงาน -> เก็บในโฟลเดอร์ Drive
 function techGenerateReport(name, pin, jobId) {
   if (!techVerify_(name, pin)) return { ok: false, error: 'unauthorized' };
