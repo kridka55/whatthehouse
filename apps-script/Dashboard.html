@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <base target="_top">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
   :root{ --green:#2e9e4f; --green-dark:#1e6e36; --green-soft:#e8f3ec; --ink:#16314f; --muted:#6b7a88; --line:#e3e8ee; --bg:#f4f7f9; }
   *{ box-sizing:border-box; }
@@ -29,6 +30,21 @@
   .stat.prog{ border-top-color:#3a86ff; } .stat.prog.active{ border-color:#3a86ff; }
   .stat.done{ border-top-color:var(--green); } .stat.done.active{ border-color:var(--green); }
   @media(max-width:640px){ .stats{ grid-template-columns:repeat(2,1fr); } }
+  /* analytics */
+  .analytics{ background:#fff; border:1px solid var(--line); border-radius:14px; margin-bottom:16px; overflow:hidden; }
+  .ana-head{ display:flex; justify-content:space-between; align-items:center; padding:13px 18px; cursor:pointer; font-weight:600; background:#fafcfb; }
+  .ana-body{ padding:16px 18px; border-top:1px solid var(--line); }
+  .ana-body.hide{ display:none; }
+  .kpis{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:16px; }
+  .kpi{ background:var(--green-soft); border-radius:11px; padding:14px 16px; }
+  .kpi .n{ font-size:1.5rem; font-weight:700; color:var(--green-dark); line-height:1.1; }
+  .kpi .t{ font-size:.8rem; color:var(--muted); margin-top:5px; }
+  .charts{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .chart-box{ border:1px solid var(--line); border-radius:11px; padding:12px 14px; height:260px; display:flex; flex-direction:column; }
+  .chart-box.full{ grid-column:1 / -1; }
+  .chart-title{ font-size:.85rem; font-weight:600; margin-bottom:8px; }
+  .chart-wrap{ position:relative; flex:1; min-height:0; }
+  @media(max-width:640px){ .charts{ grid-template-columns:1fr; } .kpis{ grid-template-columns:1fr; } }
   .filters{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
   .filters input{ flex:1; min-width:160px; padding:8px 12px; border:1px solid var(--line); border-radius:9px; font-family:inherit; }
   .count{ color:var(--muted); font-size:.85rem; }
@@ -72,6 +88,18 @@
 
   <div class="stats" id="stats"></div>
 
+  <div class="analytics" id="analytics">
+    <div class="ana-head" onclick="toggleAna()"><span>📊 สถิติภาพรวม</span><span id="anaToggle">▲</span></div>
+    <div class="ana-body" id="anaBody">
+      <div class="kpis" id="kpis"></div>
+      <div class="charts">
+        <div class="chart-box full"><div class="chart-title">งานเข้าตามวัน</div><div class="chart-wrap"><canvas id="chartTime"></canvas></div></div>
+        <div class="chart-box"><div class="chart-title">แยกตามประเภททรัพย์</div><div class="chart-wrap"><canvas id="chartType"></canvas></div></div>
+        <div class="chart-box"><div class="chart-title">แยกตามพื้นที่/จังหวัด</div><div class="chart-wrap"><canvas id="chartArea"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+
   <div class="filters">
     <input id="search" placeholder="🔍 ค้นหาชื่อลูกค้า / โครงการ / เบอร์โทร" oninput="render()">
     <span class="count" id="count"></span>
@@ -102,12 +130,70 @@
       STAGES = res.stages; JOBS = res.jobs;
       document.getElementById('bizName').textContent = res.business || 'WHAT THE HOUSE';
       render();
+      renderAnalytics();
     }).withFailureHandler(function(err){
       document.getElementById('list').innerHTML = '<div class="empty">โหลดไม่สำเร็จ: ' + err + '</div>';
     }).apiGetJobs();
   }
 
   function esc(s){ return String(s||'').replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  /* ---------- Analytics ---------- */
+  var charts = {};
+  var anaOpen = true;
+  function toggleAna(){
+    anaOpen = !anaOpen;
+    document.getElementById('anaBody').classList.toggle('hide', !anaOpen);
+    document.getElementById('anaToggle').textContent = anaOpen ? '▲' : '▼';
+    if(anaOpen) renderAnalytics();
+  }
+  function parseD(s){ if(!s) return null; var d = new Date(String(s).replace(' ', 'T')); return isNaN(d.getTime()) ? null : d; }
+  var palette = ['#2e9e4f','#3a86ff','#ffca28','#ff6b6b','#9b5de5','#00bbf9','#f15bb5','#fb8500'];
+
+  function drawChart(id, type, labels, data, lbl, color){
+    var ctx = document.getElementById(id); if(!ctx || typeof Chart === 'undefined') return;
+    if(charts[id]) charts[id].destroy();
+    var bg = (type === 'doughnut') ? palette : (color || '#2e9e4f');
+    charts[id] = new Chart(ctx, {
+      type: type,
+      data: { labels: labels, datasets: [{ label: lbl, data: data, backgroundColor: bg, borderRadius: type === 'bar' ? 6 : 0 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: type === 'doughnut', position: 'bottom' } },
+        scales: type === 'doughnut' ? {} : { y: { beginAtZero: true, ticks: { precision: 0 } } }
+      }
+    });
+  }
+
+  function renderAnalytics(){
+    if(!anaOpen) return;
+    if(typeof Chart === 'undefined'){ return setTimeout(renderAnalytics, 400); } // รอ Chart.js โหลด
+    var lastStage = STAGES[STAGES.length - 1];
+
+    // KPI: เวลาเฉลี่ยต่องาน + อัตราปิดงาน
+    var doneJobs = JOBS.filter(function(j){ return j.status === lastStage; });
+    var durs = [];
+    doneJobs.forEach(function(j){ var a = parseD(j.booked), b = parseD(j.updated); if(a && b && b >= a) durs.push((b - a) / 86400000); });
+    var avgDays = durs.length ? (durs.reduce(function(s,x){ return s + x; }, 0) / durs.length) : null;
+    var closeRate = JOBS.length ? Math.round(doneJobs.length / JOBS.length * 100) : 0;
+    document.getElementById('kpis').innerHTML =
+      '<div class="kpi"><div class="n">' + (avgDays !== null ? avgDays.toFixed(1) + ' วัน' : '—') + '</div><div class="t">เวลาเฉลี่ยต่องาน (จองคิว → เสร็จ)</div></div>' +
+      '<div class="kpi"><div class="n">' + closeRate + '%</div><div class="t">อัตราปิดงาน (' + doneJobs.length + '/' + JOBS.length + ' งาน)</div></div>';
+
+    // จัดกลุ่มข้อมูล
+    var byDay = {}, byType = {}, byArea = {};
+    JOBS.forEach(function(j){
+      var d = parseD(j.booked);
+      if(d){ var k = d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2); byDay[k] = (byDay[k]||0) + 1; }
+      var t = (j.type && String(j.type).trim()) || 'ไม่ระบุ'; byType[t] = (byType[t]||0) + 1;
+      var a = (j.area && String(j.area).trim()) || 'ไม่ระบุ'; byArea[a] = (byArea[a]||0) + 1;
+    });
+    var days = Object.keys(byDay).sort();
+
+    drawChart('chartTime', 'bar', days, days.map(function(k){ return byDay[k]; }), 'งานเข้า', '#2e9e4f');
+    drawChart('chartType', 'doughnut', Object.keys(byType), Object.keys(byType).map(function(k){ return byType[k]; }), 'ประเภท', null);
+    drawChart('chartArea', 'bar', Object.keys(byArea), Object.keys(byArea).map(function(k){ return byArea[k]; }), 'พื้นที่', '#3a86ff');
+  }
 
   function render(){
     var q = (document.getElementById('search').value || '').toLowerCase().trim();
@@ -190,6 +276,7 @@
     var job = JOBS.filter(function(j){ return j.jobId === jobId; })[0];
     if(job) job.status = status; // อัปเดตหน้าจอทันที
     render();
+    renderAnalytics();
     google.script.run.withSuccessHandler(function(){ toast('อัปเดตสถานะเป็น "' + status + '"'); })
       .withFailureHandler(function(e){ toast('ผิดพลาด: ' + e); load(); })
       .apiUpdateStatus(jobId, status);

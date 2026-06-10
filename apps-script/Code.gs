@@ -24,7 +24,7 @@ var CONFIG = {
   // ===== กันสแปม =====
   // Secret key ของ Google reCAPTCHA v3 (เอามาจากหน้าสมัคร) — ปล่อยว่างไว้แบบนี้ = ยังไม่เปิดใช้
   RECAPTCHA_SECRET: 'PASTE_RECAPTCHA_SECRET_KEY_HERE',
-  RECAPTCHA_MIN_SCORE: 0.5,   // คะแนนต่ำกว่านี้ถือว่าเป็นบอท (0.0=บอทแน่ ถึง 1.0=คนแน่)
+  RECAPTCHA_MIN_SCORE: 0.1,   // คะแนนต่ำกว่านี้ถือว่าเป็นบอท (ตั้งต่ำไว้ กันบล็อกลูกค้าจริงพลาด)
   MIN_FILL_SECONDS: 3,        // ถ้ากรอกเสร็จเร็วกว่านี้ (วินาที) ถือว่าเป็นบอท
 
   BUSINESS_NAME: 'WHAT THE HOUSE – Home Inspections',
@@ -213,18 +213,21 @@ function nowStr_() {
 
 function verifyRecaptcha_(token) {
   // ยังไม่ตั้งค่า secret -> ข้ามการตรวจ (ระบบยังทำงานได้ปกติ)
-  if (!CONFIG.RECAPTCHA_SECRET || CONFIG.RECAPTCHA_SECRET.indexOf('PASTE_') === 0) return true;
-  if (!token) return false;
+  if (!CONFIG.RECAPTCHA_SECRET || String(CONFIG.RECAPTCHA_SECRET).indexOf('PASTE_') === 0) return true;
+  if (!token) return true; // ไม่มี token (สคริปต์อาจโหลดไม่ทัน) -> ปล่อยผ่าน กันพลาดลูกค้าจริง
   try {
     var resp = UrlFetchApp.fetch('https://www.google.com/recaptcha/api/siteverify', {
       method: 'post',
-      payload: { secret: CONFIG.RECAPTCHA_SECRET, response: token },
+      payload: { secret: String(CONFIG.RECAPTCHA_SECRET).trim(), response: token },
       muteHttpExceptions: true
     });
     var r = JSON.parse(resp.getContentText());
-    return r.success === true && (typeof r.score === 'undefined' || r.score >= CONFIG.RECAPTCHA_MIN_SCORE);
+    // บล็อกเฉพาะกรณีตรวจผ่านจริง แล้วได้คะแนนต่ำกว่าเกณฑ์ (บอทชัด ๆ)
+    if (r.success === true && typeof r.score === 'number' && r.score < CONFIG.RECAPTCHA_MIN_SCORE) return false;
+    // กรณีอื่น (รวม success:false จากตั้งค่า secret ผิด หรือ error) -> ปล่อยผ่าน ไม่ทิ้งลูกค้า
+    return true;
   } catch (err) {
-    return false;
+    return true; // error -> ปล่อยผ่าน
   }
 }
 
