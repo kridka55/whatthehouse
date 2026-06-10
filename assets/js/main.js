@@ -74,6 +74,26 @@
       // กันกดถี่: ส่งซ้ำได้ทุก 30 วินาที
       if (Date.now() - lastSubmitAt < 30000) return;
 
+      // ตรวจความถูกต้องของข้อมูล
+      var errEl = form.querySelector("#formErr");
+      var emailEl = form.querySelector('input[name="email"]');
+      var phoneEl = form.querySelector('input[name="phone"]');
+      var emailVal = (emailEl ? emailEl.value : "").trim();
+      var phoneDigits = (phoneEl ? phoneEl.value : "").replace(/\D/g, "");
+      function showErr(msg, el) {
+        if (errEl) { errEl.textContent = msg; errEl.style.display = "block"; }
+        if (el) { el.focus(); }
+      }
+      if (errEl) { errEl.style.display = "none"; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+        showErr("กรุณากรอกอีเมลให้ถูกต้อง (ต้องมี @ และโดเมน เช่น name@email.com)", emailEl);
+        return;
+      }
+      if (phoneDigits.length !== 10) {
+        showErr("เบอร์โทรต้องเป็นตัวเลข 10 หลักเท่านั้น เช่น 0812345678", phoneEl);
+        return;
+      }
+
       var btn = form.querySelector('button[type="submit"]');
       var ok = form.querySelector("#formOk");
 
