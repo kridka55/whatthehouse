@@ -69,11 +69,11 @@
 
       <div class="form-row">
         <div class="field"><label><span class="lang-th">ชื่อ</span><span class="lang-en">Name</span></label><input type="text" name="name" required></div>
-        <div class="field"><label><span class="lang-th">เบอร์โทร</span><span class="lang-en">Phone</span></label><input type="tel" name="phone" required></div>
+        <div class="field"><label><span class="lang-th">เบอร์โทร</span><span class="lang-en">Phone</span></label><input type="tel" name="phone" required inputmode="numeric" maxlength="10" pattern="[0-9]{10}" placeholder="เช่น 0812345678"></div>
       </div>
 
       <div class="form-row">
-        <div class="field"><label><span class="lang-th">อีเมล (เพื่อรับรายงาน)</span><span class="lang-en">Email (to receive your report)</span></label><input type="email" name="email"></div>
+        <div class="field"><label><span class="lang-th">อีเมล (เพื่อรับรายงาน)</span><span class="lang-en">Email (to receive your report)</span></label><input type="email" name="email" required placeholder="เช่น name@email.com"></div>
         <div class="field"></div>
       </div>
 
@@ -107,6 +107,7 @@
 
       <div class="field"><label><span class="lang-th">รายละเอียดเพิ่มเติม</span><span class="lang-en">Message</span></label><textarea name="message"></textarea></div>
 
+      <div id="formErr" style="display:none;margin-top:6px;margin-bottom:6px;padding:11px 14px;border-radius:9px;background:#fdecea;color:#b3261e;font-weight:600;font-size:.9rem"></div>
       <button type="submit" class="btn btn-primary btn-lg" style="width:100%"><span class="lang-th">ส่งคำขอ</span><span class="lang-en">Send request</span></button>
       <p class="form-note"><span class="lang-th">เราจะใช้ข้อมูลนี้เพื่อติดต่อกลับเรื่องการตรวจบ้านเท่านั้น • มีระบบป้องกันสแปม</span><span class="lang-en">We'll only use these details to contact you about your inspection • spam-protected</span></p>
       <div id="formOk" style="display:none;margin-top:14px;padding:14px;border-radius:10px;background:var(--green-soft);color:var(--green-dark);font-weight:600">
