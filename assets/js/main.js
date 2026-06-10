@@ -111,6 +111,26 @@
 
       function doSend(token) {
         data.recaptchaToken = token || "";
+
+        // เขียนเข้า Firestore (ระบบใหม่) — คู่ขนานกับ Apps Script เดิมในช่วงย้ายระบบ
+        try {
+          if (window.firebase && firebase.firestore) {
+            firebase.firestore().collection("bookings").add({
+              name: data.name || "",
+              phone: data.phone || "",
+              email: data.email || "",
+              type: data.type || "",
+              area: data.area || "",
+              project: data.project || "",
+              date: data.date || "",
+              message: data.message || "",
+              status: "จองคิว",
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(function (e) { console.warn("Firestore booking failed:", e); });
+          }
+        } catch (e) { console.warn("Firestore booking error:", e); }
+
         // ยังไม่ตั้งค่า endpoint -> แสดงสำเร็จไปก่อน (กันฟอร์มพัง)
         if (!BOOKING_ENDPOINT || BOOKING_ENDPOINT.indexOf("PASTE_") === 0) { showSuccess(); return; }
         if (btn) { btn.disabled = true; }
