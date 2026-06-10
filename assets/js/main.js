@@ -43,7 +43,10 @@
     });
   });
 
-  /* ---------- contact form ---------- */
+  /* ---------- contact / booking form ---------- */
+  // วาง URL ของ Apps Script Web App (ลงท้าย /exec) ที่นี่ หลัง Deploy เสร็จ
+  var BOOKING_ENDPOINT = "PASTE_APPS_SCRIPT_URL_HERE";
+
   var form = document.querySelector("#contactForm");
   if (form) {
     form.addEventListener("submit", function (e) {
@@ -51,9 +54,33 @@
       // honeypot: if filled, silently drop (bot)
       var hp = form.querySelector('input[name="company"]');
       if (hp && hp.value) return;
+
+      var btn = form.querySelector('button[type="submit"]');
       var ok = form.querySelector("#formOk");
-      if (ok) ok.style.display = "block";
-      form.reset();
+
+      // เก็บข้อมูลฟอร์ม
+      var data = {};
+      new FormData(form).forEach(function (v, k) { data[k] = v; });
+
+      function showSuccess() {
+        if (ok) ok.style.display = "block";
+        form.reset();
+        if (btn) { btn.disabled = false; }
+      }
+
+      // ยังไม่ได้ตั้งค่า endpoint -> แสดงสำเร็จไปก่อน (กันฟอร์มพัง)
+      if (!BOOKING_ENDPOINT || BOOKING_ENDPOINT.indexOf("PASTE_") === 0) {
+        showSuccess();
+        return;
+      }
+
+      if (btn) { btn.disabled = true; }
+      fetch(BOOKING_ENDPOINT, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(data)
+      }).then(showSuccess).catch(showSuccess);
     });
   }
 })();
