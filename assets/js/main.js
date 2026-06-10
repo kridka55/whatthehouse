@@ -48,7 +48,7 @@
   var BOOKING_ENDPOINT = "https://script.google.com/macros/s/AKfycbyOL_bFiw8bpR8ZIS44VA3aUFlkMpzLjMcfPl-2wD_R4hjK0Pvs-Mmn93qPhOEtwG2P/exec";
 
   // reCAPTCHA v3 site key (ค่าสาธารณะ ใส่ในเว็บได้) — ปล่อย PASTE_ ไว้ = ยังไม่เปิดใช้
-  var RECAPTCHA_SITE_KEY = "PASTE_RECAPTCHA_SITE_KEY_HERE";
+  var RECAPTCHA_SITE_KEY = "6LeW1xYtAAAAAKdt62WW6oqR82GOmp0Qvw0YVUru";
   var recaptchaReady = false;
 
   var form = document.querySelector("#contactForm");
