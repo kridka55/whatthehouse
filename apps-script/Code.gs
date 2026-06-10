@@ -64,10 +64,14 @@ function doPost(e) {
       return jsonOut_({ ok: false, error: 'reCAPTCHA ไม่ผ่าน' });
     }
 
-    // 4) ตรวจข้อมูลขั้นต่ำ: ต้องมีชื่อ และเบอร์โทรอย่างน้อย 8 หลัก
+    // 4) ตรวจความถูกต้อง: ต้องมีชื่อ, เบอร์โทร 10 หลักพอดี, อีเมลรูปแบบถูกต้อง
     var nameRaw = String(data.name || '').trim();
     var phoneDigits = String(data.phone || '').replace(/\D/g, '');
-    if (!nameRaw || phoneDigits.length < 8) return jsonOut_({ ok: false, error: 'ข้อมูลไม่ครบ' });
+    var emailRaw = String(data.email || '').trim();
+    var emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw);
+    if (!nameRaw || phoneDigits.length !== 10 || !emailOk) {
+      return jsonOut_({ ok: false, error: 'ข้อมูลไม่ถูกต้อง (ต้องมีชื่อ / เบอร์ 10 หลัก / อีเมลที่ถูกต้อง)' });
+    }
 
     // 5) กันส่งซ้ำรัว ๆ: ชื่อ+เบอร์+ข้อความเดิมภายใน 5 นาที = ข้าม
     var cache = CacheService.getScriptCache();
